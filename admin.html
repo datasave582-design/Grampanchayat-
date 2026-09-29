@@ -22,6 +22,12 @@ input,textarea{width:100%;padding:10px;margin:4px 0 8px;border:1px solid #c9d0c4
 <div id="logoPreview" style="margin:6px 0"></div>
 <button class="b" onclick="saveBrand()">💾 नाम/लोगो सेव करें</button> <button class="b o" onclick="toggleHomeElection()">🗳️ Home Vote/Pratyashi ON/OFF</button>
 <label style="display:flex;gap:8px;align-items:center;margin:12px 0"><input id="setHomeElection" type="checkbox" style="width:auto"> 🗳️ Home page पर Vote / Pratyashi दिखाएँ</label><hr style="border:0;border-top:1px solid #ddd;margin:14px 0">
+<h3>📋 Survey Field Manager</h3>
+<p style="font-size:13px;color:#667">यहाँ से Survey में field को ON/OFF करें। नया custom field जोड़ें या field हटाएँ। बदलाव save होते ही users के survey में लागू होंगे।</p>
+<div id="surveyFieldManager"></div>
+<div class="r" style="margin-top:8px"><input id="newSfLabel" placeholder="नया field नाम, जैसे: गैस कनेक्शन" style="flex:1;min-width:220px"><select id="newSfType" style="padding:9px;border:1px solid #c9d0c4;border-radius:8px"><option value="text">Text</option><option value="number">Number</option></select><button class="b" onclick="addSurveyField()">➕ Field जोड़ें</button></div>
+<button class="b" onclick="saveSurveyFields()">💾 Survey Fields सेव करें</button>
+<div id="sfStatus" style="font-size:13px;margin-top:6px"></div><hr style="border:0;border-top:1px solid #ddd;margin:14px 0">
 <h3>🔥 Firebase Configuration</h3>
 <p style="font-size:13px;color:#667">नए Firebase project की Web App configuration यहाँ paste करें। नीचे सभी fields editable हैं।</p>
 <label>apiKey</label><input id="fc_apiKey">
@@ -97,7 +103,47 @@ const tg=async k=>{const on=flag(k);if(confirm((k=='open'?'वोटिंग ':
 
 const DEFAULT_FIREBASE_CONFIG=(()=>{try{return JSON.parse(localStorage.getItem('garhiFirebaseConfig')||'null')}catch(e){return null}})();
 function currentBrand(){const s=ST.find(x=>x.id=='app')||{};return {name:s.panchayatName||'गढ़ी अहबरन',logo:s.logo||'./icon-192.png'};}
+const DEFAULT_ADMIN_SURVEY_FIELDS=[
+{id:'docs_aadhaar',label:'आधार उपलब्ध',group:'docs',type:'checkbox',key:'docs',value:'आधार उपलब्ध',enabled:true},
+{id:'docs_bank',label:'बैंक खाता',group:'docs',type:'checkbox',key:'docs',value:'बैंक खाता',enabled:true},
+{id:'docs_ration',label:'राशन कार्ड',group:'docs',type:'checkbox',key:'docs',value:'राशन कार्ड',enabled:true},
+{id:'docs_income',label:'आय प्रमाण पत्र',group:'docs',type:'checkbox',key:'docs',value:'आय प्रमाण पत्र',enabled:true},
+{id:'docs_caste',label:'जाति प्रमाण पत्र',group:'docs',type:'checkbox',key:'docs',value:'जाति प्रमाण पत्र',enabled:true},
+{id:'docs_residence',label:'निवास प्रमाण पत्र',group:'docs',type:'checkbox',key:'docs',value:'निवास प्रमाण पत्र',enabled:true},
+{id:'docs_job',label:'जॉब कार्ड',group:'docs',type:'checkbox',key:'docs',value:'जॉब कार्ड',enabled:true},
+{id:'docs_farmer',label:'किसान पंजीकरण',group:'docs',type:'checkbox',key:'docs',value:'किसान पंजीकरण',enabled:true},
+{id:'docs_ayushman',label:'आयुष्मान कार्ड',group:'docs',type:'checkbox',key:'docs',value:'आयुष्मान कार्ड',enabled:true},
+{id:'docs_voter',label:'वोटर कार्ड',group:'docs',type:'checkbox',key:'docs',value:'वोटर कार्ड',enabled:true},
+{id:'need_scholarship',label:'छात्रवृत्ति',group:'needs',type:'checkbox',key:'needs',value:'छात्रवृत्ति',enabled:true},
+{id:'need_school_clean',label:'स्कूल की साफ-सफाई',group:'needs',type:'checkbox',key:'needs',value:'स्कूल की साफ-सफाई',enabled:true},
+{id:'need_library',label:'लाइब्रेरी',group:'needs',type:'checkbox',key:'needs',value:'लाइब्रेरी',enabled:true},
+{id:'need_digital',label:'डिजिटल पढ़ाई',group:'needs',type:'checkbox',key:'needs',value:'डिजिटल पढ़ाई',enabled:true},
+{id:'need_inter',label:'12वीं/इंटर कॉलेज',group:'needs',type:'checkbox',key:'needs',value:'12वीं/इंटर कॉलेज',enabled:true},
+{id:'need_computer',label:'कंप्यूटर प्रशिक्षण',group:'needs',type:'checkbox',key:'needs',value:'कंप्यूटर प्रशिक्षण',enabled:true},
+{id:'need_self',label:'स्वरोजगार/लोन मार्गदर्शन',group:'needs',type:'checkbox',key:'needs',value:'स्वरोजगार/लोन मार्गदर्शन',enabled:true},
+{id:'farm_help',label:'किसान सहायता/पंजीकरण',group:'farm',type:'checkbox',key:'farm',value:'किसान सहायता/पंजीकरण',enabled:true},
+{id:'farm_irrigation',label:'सिंचाई',group:'farm',type:'checkbox',key:'farm',value:'सिंचाई',enabled:true},
+{id:'basic_road',label:'सड़क',group:'basic',type:'checkbox',key:'basic',value:'सड़क',enabled:true},
+{id:'basic_drain',label:'नाली',group:'basic',type:'checkbox',key:'basic',value:'नाली',enabled:true},
+{id:'basic_water',label:'पीने का पानी',group:'basic',type:'checkbox',key:'basic',value:'पीने का पानी',enabled:true},
+{id:'basic_electric',label:'बिजली',group:'basic',type:'checkbox',key:'basic',value:'बिजली',enabled:true},
+{id:'basic_clean',label:'सफाई/कचरा',group:'basic',type:'checkbox',key:'basic',value:'सफाई/कचरा',enabled:true},
+{id:'basic_wifi',label:'इंटरनेट/Wi-Fi',group:'basic',type:'checkbox',key:'basic',value:'इंटरनेट/Wi-Fi',enabled:true},
+{id:'basic_ground',label:'खेल मैदान',group:'basic',type:'checkbox',key:'basic',value:'खेल मैदान',enabled:true},
+{id:'basic_health',label:'स्वास्थ्य सुविधा',group:'basic',type:'checkbox',key:'basic',value:'स्वास्थ्य सुविधा',enabled:true}
+];
+let ADMIN_SURVEY_FIELDS=DEFAULT_ADMIN_SURVEY_FIELDS.map(x=>({...x}));
+function renderSurveyFieldManager(){
+ const el=$('#surveyFieldManager'); if(!el)return;
+ el.innerHTML=ADMIN_SURVEY_FIELDS.map((f,i)=>`<div class="box" style="padding:8px;margin:5px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><label style="display:flex;align-items:center;gap:7px;margin:0"><input type="checkbox" ${f.enabled!==false?'checked':''} onchange="ADMIN_SURVEY_FIELDS[${i}].enabled=this.checked" style="width:auto;margin:0"> <b>${esc(f.label)}</b></label><span class="tag">${f.group||'custom'} • ${f.type||'checkbox'}</span>${f.custom?`<button class="b d" onclick="removeSurveyField(${i})">🗑️ हटाएँ</button>`:''}</div>`).join('');
+}
+function loadSurveyFields(){db.collection('settings').doc('surveyFields').get().then(s=>{if(s.exists&&Array.isArray(s.data().fields))ADMIN_SURVEY_FIELDS=s.data().fields;renderSurveyFieldManager()}).catch(()=>renderSurveyFieldManager())}
+function addSurveyField(){const label=$('#newSfLabel').value.trim();if(!label)return alert('Field का नाम लिखें।');const id='custom_'+Date.now();ADMIN_SURVEY_FIELDS.push({id,label,group:'custom',type:$('#newSfType').value,key:'customFields',custom:true,enabled:true});$('#newSfLabel').value='';renderSurveyFieldManager()}
+function removeSurveyField(i){if(!confirm('यह custom field हटाएँ? पुराने survey data में उसका data रहेगा।'))return;ADMIN_SURVEY_FIELDS.splice(i,1);renderSurveyFieldManager()}
+async function saveSurveyFields(){try{await db.collection('settings').doc('surveyFields').set({fields:ADMIN_SURVEY_FIELDS,updatedAt:FV.serverTimestamp()});$('#sfStatus').textContent='✅ Survey fields सेव हो गए।';setTimeout(()=>$('#sfStatus').textContent='',3000)}catch(e){alert('Save failed: '+e.message)}}
+
 function loadSettingsForm(){
+ loadSurveyFields();
  const s=ST.find(x=>x.id=='app')||{};
  $('#setPanchayat').value=s.panchayatName||'गढ़ी अहबरन'; $('#setHomeElection').checked=s.homeElection!==false;
  $('#logoPreview').innerHTML=s.logo?`<img src="${s.logo}" style="width:72px;height:72px;object-fit:cover;border-radius:12px">`:'';
