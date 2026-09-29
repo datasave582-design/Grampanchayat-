@@ -20,8 +20,8 @@ input,textarea{width:100%;padding:10px;margin:4px 0 8px;border:1px solid #c9d0c4
 <label>ग्राम पंचायत का नाम</label><input id="setPanchayat" placeholder="जैसे: गढ़ी अहबरन">
 <label>पंचायत / ऐप लोगो</label><input id="setLogo" type="file" accept="image/*">
 <div id="logoPreview" style="margin:6px 0"></div>
-<button class="b" onclick="saveBrand()">💾 नाम/लोगो सेव करें</button>
-<hr style="border:0;border-top:1px solid #ddd;margin:14px 0">
+<button class="b" onclick="saveBrand()">💾 नाम/लोगो सेव करें</button> <button class="b o" onclick="toggleHomeElection()">🗳️ Home Vote/Pratyashi ON/OFF</button>
+<label style="display:flex;gap:8px;align-items:center;margin:12px 0"><input id="setHomeElection" type="checkbox" style="width:auto"> 🗳️ Home page पर Vote / Pratyashi दिखाएँ</label><hr style="border:0;border-top:1px solid #ddd;margin:14px 0">
 <h3>🔥 Firebase Configuration</h3>
 <p style="font-size:13px;color:#667">नए Firebase project की Web App configuration यहाँ paste करें। नीचे सभी fields editable हैं।</p>
 <label>apiKey</label><input id="fc_apiKey">
@@ -50,7 +50,7 @@ $('#tb').innerHTML=Object.keys(TB).map(k=>`<button data-k="${k}" onclick="tab='$
 auth.onAuthStateChanged(u=>{const ok=u&&u.email=='admin@meragav.in';$('#lg').hidden=ok;$('#ap').hidden=!ok;if(ok&&!on++)start()});
 const sub=(c,f)=>db.collection(c).onSnapshot(s=>{f(s.docs.map(d=>({id:d.id,...d.data()})));draw()},e=>console.error(c,e));
 function start(){
- sub('users',a=>US=a);sub('candidates',a=>CA=a);sub('claims',a=>CLM=a);sub('votes',a=>VS=a);sub('comments',a=>CMT=a);sub('chat',a=>CHT=a);sub('settings',a=>ST=a);sub('reacts',a=>RC=a);sub('problems',a=>PRB=a);sub('villageSurveys',a=>VSUR=a);sub('settings',a=>{ST=a;const b=currentBrand();$('#adminBrand').textContent='🏡 '+b.name+' – एडमिन पैनल';document.title='एडमिन – '+b.name;draw()})}
+ sub('users',a=>US=a);sub('candidates',a=>CA=a);sub('claims',a=>CLM=a);sub('votes',a=>VS=a);sub('comments',a=>CMT=a);sub('chat',a=>CHT=a);sub('settings',a=>{ST=a;const b=currentBrand();$('#adminBrand').textContent='🏡 '+b.name+' – एडमिन पैनल';document.title='एडमिन – '+b.name;draw()});sub('reacts',a=>RC=a);sub('problems',a=>PRB=a);sub('villageSurveys',a=>VSUR=a)}
 const nm=id=>(CA.find(c=>c.id==id)||{}).name||'?';
 const H={
 pend:()=>{const pv=US.filter(u=>u.status=='pending'&&u.role=='voter'),pc=CA.filter(c=>c.status=='pending');
@@ -83,7 +83,7 @@ H.survey=()=>{
 function surveyView(id){
  const x=VSUR.find(a=>a.id==id); if(!x)return;
  const a=k=>(x[k]||[]).join(', ')||'-';
- alert(`Survey: ${x.surveyId||x.id}\nनाम: ${x.name||'-'}\nमोबाइल: ${x.mobile||'-'}\nवार्ड: ${x.ward||'-'}\nकुल सदस्य: ${x.members||0} | पुरुष: ${x.male||0} | महिला: ${x.female||0} | बच्चे: ${x.children||0} | बुजुर्ग: ${x.elderly||0}\nस्कूल बच्चे: ${x.school||0} | ड्रॉपआउट: ${x.dropout||0} | बेरोजगार युवा: ${x.unemployed||0}\n\nदस्तावेज: ${a('docs')}\nशिक्षा/युवा/महिला: ${a('needs')}\nकिसान/पशुपालन: ${a('farm')}\nमूलभूत/स्वास्थ्य/खेल: ${a('basic')}\n\nप्राथमिकता: ${x.priority||'-'}\nसुझाव: ${x.suggestion||'-'}`);
+ alert(`Survey: ${x.surveyId||x.id}\nनाम: ${x.name||'-'}\nमोबाइल: ${x.mobile||'-'}\nवार्ड: ${x.ward||'-'}\nकुल सदस्य: ${x.members||0} | पुरुष: ${x.male||0} | महिला: ${x.female||0} | बच्चे: ${x.children||0} | बुजुर्ग: ${x.elderly||0}\nस्कूल बच्चे: ${x.school||0} | ड्रॉपआउट: ${x.dropout||0} | बेरोजगार युवा: ${x.unemployed||0}\n\nदस्तावेज: ${a('docs')}\nआयुष्मान कार्ड: ${(x.docs||[]).includes('आयुष्मान कार्ड')?'हाँ':'नहीं'} | वोटर कार्ड: ${(x.docs||[]).includes('वोटर कार्ड')?'हाँ':'नहीं'}\nशिक्षा/युवा/महिला: ${a('needs')}\nकिसान/पशुपालन: ${a('farm')}\nमूलभूत/स्वास्थ्य/खेल: ${a('basic')}\n\nप्राथमिकता: ${x.priority||'-'}\nसुझाव: ${x.suggestion||'-'}`);
 }
 function csvCell(v){return '"'+String(v??'').replace(/"/g,'""').replace(/\n/g,' ')+'"'}
 function exportSurveys(){
@@ -99,7 +99,7 @@ const DEFAULT_FIREBASE_CONFIG=(()=>{try{return JSON.parse(localStorage.getItem('
 function currentBrand(){const s=ST.find(x=>x.id=='app')||{};return {name:s.panchayatName||'गढ़ी अहबरन',logo:s.logo||'./icon-192.png'};}
 function loadSettingsForm(){
  const s=ST.find(x=>x.id=='app')||{};
- $('#setPanchayat').value=s.panchayatName||'गढ़ी अहबरन';
+ $('#setPanchayat').value=s.panchayatName||'गढ़ी अहबरन'; $('#setHomeElection').checked=s.homeElection!==false;
  $('#logoPreview').innerHTML=s.logo?`<img src="${s.logo}" style="width:72px;height:72px;object-fit:cover;border-radius:12px">`:'';
  const c=(()=>{try{return JSON.parse(localStorage.getItem('garhiFirebaseConfig')||'{}')}catch(e){return {}}})();
  ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId','measurementId'].forEach(k=>$('#fc_'+k).value=c[k]||'');
@@ -111,9 +111,10 @@ async function saveBrand(){
  let logo=(ST.find(x=>x.id=='app')||{}).logo||'';
  const f=$('#setLogo').files[0];
  if(f)logo=await img(f,512);
- await db.collection('settings').doc('app').set({panchayatName:name,logo,updatedAt:FV.serverTimestamp()},{merge:true});
+ await db.collection('settings').doc('app').set({panchayatName:name,logo,homeElection:$('#setHomeElection').checked,updatedAt:FV.serverTimestamp()},{merge:true});
  alert('नाम/लोगो सेव हो गया।');
 }
+async function toggleHomeElection(){const s=ST.find(x=>x.id=='app')||{};const next=s.homeElection===false;await db.collection('settings').doc('app').set({homeElection:next,updatedAt:FV.serverTimestamp()},{merge:true});alert(next?'Home Vote/Pratyashi चालू कर दिया गया।':'Home Vote/Pratyashi बंद कर दिया गया।');} 
 function getFirebaseForm(){
  const c={};
  ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId','measurementId'].forEach(k=>c[k]=$('#fc_'+k).value.trim());
